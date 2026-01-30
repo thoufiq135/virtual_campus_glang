@@ -1,0 +1,13 @@
+name: virtual_office
+
+logger:
+  level: DEBUG
+
+socket:
+  server_key: defaultkey
+  cors_allowed_origins:
+    - "*"
+
+database:
+  address:
+    - "postgres://thoufiq:thoufiq@postgres:5432/virtual_office?sslmode=disable"
