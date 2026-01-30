@@ -27,6 +27,7 @@ async function fetch_profile() {
       if (!response.ok) throw new Error("Profile fetch failed");
 
       raw = await response.json();
+      console.log(raw)
       localStorage.setItem("stackenzo_gsin_user_data", JSON.stringify(raw));
     } catch (e) {
       console.error("error fetching data", e);
