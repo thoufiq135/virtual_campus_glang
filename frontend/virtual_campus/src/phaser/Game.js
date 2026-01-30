@@ -15,9 +15,9 @@ async function fetch_profile() {
 
   if (!raw) {
     try {
-      console.log("calling http://localhost:5000/profile");
+      console.log("calling http://3.106.204.203:5000/profile");
 
-      const response = await fetch("http://localhost:5000/profile", {
+      const response = await fetch("http://3.106.204.203:5000/profile", {
         headers: {
           Authorization: `Bearer ${token}`
         }
