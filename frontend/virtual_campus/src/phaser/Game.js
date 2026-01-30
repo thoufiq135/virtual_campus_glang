@@ -4,9 +4,7 @@ import { connect_nakama } from "./nakama_init";
 let storeData = {};
 const token = localStorage.getItem("stackenzo_token_gsin");
 
-if (!token) {
-  window.location.href = "/login";
-}
+
 
 // ================= PROFILE =================
 
