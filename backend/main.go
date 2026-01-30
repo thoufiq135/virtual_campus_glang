@@ -13,6 +13,7 @@ func enablecors(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization,Content-Type,Accept,Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return

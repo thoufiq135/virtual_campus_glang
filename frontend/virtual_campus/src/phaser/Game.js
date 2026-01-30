@@ -16,6 +16,7 @@ async function fetch_profile() {
   if (!raw) {
     try {
       console.log("calling http://3.106.204.203:5000/profile");
+      console.log("sending headers token",token)
 
       const response = await fetch("http://3.106.204.203:5000/profile", {
         headers: {
