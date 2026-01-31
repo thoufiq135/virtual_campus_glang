@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { connect_nakama } from "./nakama_init";
 
 let storeData = {};
-const token = localStorage.getItem("stackenzo_token_gsin");
+const token = localStorage.getItem("stackenzo_token_data_gsin");
 
 
 

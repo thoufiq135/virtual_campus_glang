@@ -67,7 +67,7 @@ const payload =
       }
       console.log("login token =",data.token)
 
-      localStorage.setItem("stackenzo_token_gsin", data.token);
+      localStorage.setItem("stackenzo_token_data_gsin", data.token);
 
       // Save avatar after signup
       // if (mode === "signup" && selectedAvatar) {
