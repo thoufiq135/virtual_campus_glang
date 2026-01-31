@@ -65,7 +65,7 @@ const payload =
 
         return;
       }
-      console.log("login token =".data.token)
+      console.log("login token =",data.token)
 
       localStorage.setItem("stackenzo_token_gsin", data.token);
 
