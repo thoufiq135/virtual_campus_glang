@@ -14,6 +14,7 @@ async function fetch_profile() {
   let raw = JSON.parse(localStorage.getItem("stackenzo_gsin_user_data"));
 
   if (!raw) {
+    
     try {
       console.log("calling http://3.106.204.203:5000/profile");
       console.log("sending headers token",token)
@@ -27,7 +28,11 @@ async function fetch_profile() {
       if (!response.ok) throw new Error("Profile fetch failed");
 
       raw = await response.json();
-      console.log(raw)
+      console.log(JSON.stringify(raw))
+      if (!raw || !raw.user) {
+        console.error("Invalid profile response:", raw);
+        return null;
+      }
       localStorage.setItem("stackenzo_gsin_user_data", JSON.stringify(raw));
     } catch (e) {
       console.error("error fetching data", e);

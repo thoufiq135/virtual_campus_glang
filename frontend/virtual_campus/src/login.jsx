@@ -2,6 +2,7 @@ import React from 'react'
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from 'react-router-dom';
+localStorage.removeItem("stackenzo_gsin_user_data")
 const Login = () => {
     const navigator = useNavigate()
 
@@ -64,7 +65,7 @@ const payload =
 
         return;
       }
-      console.log(data.token)
+      console.log("login token =".data.token)
 
       localStorage.setItem("stackenzo_token_gsin", data.token);
 
