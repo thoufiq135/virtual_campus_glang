@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { connect_nakama } from "./nakama_init";
 
 let storeData = {};
-const token = localStorage.getItem("stackenzo_token_data_gsin");
+const token_login = localStorage.getItem("stackenzo_token_data_gsin");
 
 
 
@@ -17,11 +17,11 @@ async function fetch_profile() {
     
     try {
       console.log("calling http://3.106.204.203:5000/profile");
-      console.log("sending headers token",token)
+      console.log("sending headers token",token_login)
 
       const response = await fetch("http://3.106.204.203:5000/profile", {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token_login}`
         }
       });
 
