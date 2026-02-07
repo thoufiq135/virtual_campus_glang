@@ -41,6 +41,8 @@ services:
      exec /nakama/nakama \
       --name virtual_office \
       --database.address thoufiq:thoufiq@postgres:5432/virtual_office \
+      --session.token_expiry_sec 3600
+      --session.refresh_token_expiry_sec 604800
       --runtime.env REDIS_HOST=redis \
       --logger.level DEBUG \
       --socket.server_key defaultkey

@@ -1,5 +1,5 @@
 import {io} from "socket.io-client"
-const socket = io("http://3.26.1.207:3030", {
+const socket = io("https://ws.gsin.online", {
   transports: ["websocket"],
   autoConnect: true
 });
