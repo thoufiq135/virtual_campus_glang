@@ -12,7 +12,7 @@ func enablecors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization,Content-Type,Accept,Origin")
-		w.Header().Set("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE,OPTIONS")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
@@ -22,7 +22,7 @@ func enablecors(next http.Handler) http.Handler {
 	})
 }
 func main() {
-	err := godotenv.Load(".env")
+	err := godotenv.Load()
 	if err != nil {
 		log.Println("err loading env files")
 	}
@@ -41,5 +41,5 @@ func main() {
 	})
 
 	handle := enablecors(http.DefaultServeMux)
-	log.Fatal(http.ListenAndServe(":8080", handle))
+	log.Fatal(http.ListenAndServe(":5000", handle))
 }

@@ -4,7 +4,7 @@ export async function connect_nakama() {
 
   const client = new Client(
     "defaultkey",
-    "3.106.204.203",
+    "localhost",
     "7350",
     false
   );

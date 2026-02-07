@@ -11,7 +11,7 @@ import (
 var DB *pgx.Conn
 
 func ConnectDB() {
-	url := os.Getenv("DB_URL")
+	url := os.Getenv("db_url")
 	if url == "" {
 		panic("url not found")
 	}

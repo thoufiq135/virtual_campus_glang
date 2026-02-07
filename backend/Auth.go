@@ -43,7 +43,7 @@ func addUser(email, avatar, password, name string) string {
 
 	req, _ := http.NewRequest(
 		"POST",
-		"http://nakama:7350/v2/account/authenticate/email?create=true",
+		"http://localhost:7350/v2/account/authenticate/email?create=true",
 		strings.NewReader(payload),
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -70,7 +70,7 @@ func addUser(email, avatar, password, name string) string {
 	}`
 	res, _ := http.NewRequest(
 		"PUT",
-		"http://nakama:7350/v2/account",
+		"http://localhost:7350/v2/account",
 		strings.NewReader(avatarPayload),
 	)
 	res.Header.Set("Content-Type", "application/json")
@@ -80,6 +80,7 @@ func addUser(email, avatar, password, name string) string {
 	return token
 }
 func CreateAccount(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("came to CreateAccount")
 	if r.Method != "POST" {
 		fmt.Print("incorrect request")
 
@@ -93,7 +94,8 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
+	fmt.Println("came url data=", data.Avatar)
+	fmt.Println("form mail=", data.Email)
 	if userExists(data.Email) {
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -130,7 +132,7 @@ func authenticate(email, password string) string {
 	}`
 	res, _ := http.NewRequest(
 		"POST",
-		"http://nakama:7350/v2/account/authenticate/email",
+		"http://localhost:7350/v2/account/authenticate/email",
 		strings.NewReader(payload),
 	)
 	res.Header.Set("Content-Type", "application/json")
@@ -138,9 +140,12 @@ func authenticate(email, password string) string {
 	client := &http.Client{}
 	resp, err := client.Do(res)
 	if err != nil {
-		fmt.Println("internal server error")
+		fmt.Println("internal server error", err)
+		return "error"
 	}
 	response, _ := io.ReadAll(resp.Body)
+	fmt.Println("Nakama raw response:", string(response))
+
 	var result map[string]interface{}
 	json.Unmarshal(response, &result)
 	token, ok := result["token"].(string)
@@ -183,6 +188,7 @@ func accountLogin(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+		// fmt.Println("coming token=", token)
 		w.WriteHeader(http.StatusAccepted)
 		json.NewEncoder(w).Encode(map[string]string{
 			"token": token,

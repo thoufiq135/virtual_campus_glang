@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { connect_nakama } from "./nakama_init";
-
+import Media_soup from "../connectMedia";
 let storeData = {};
 
 
@@ -17,10 +17,10 @@ async function fetch_profile() {
     
     try {
       const token_login = localStorage.getItem("stackenzo_token_data_gsin");
-      console.log("calling http://3.106.204.203:5000/profile");
+      console.log("calling http://localhost:5000/profile");
       console.log("sending headers token",token_login)
 
-      const response = await fetch("http://3.106.204.203:5000/profile", {
+      const response = await fetch("http://localhost:5000/profile", {
         headers: {
           Authorization: `Bearer ${token_login}`
         }
@@ -59,7 +59,7 @@ export default class Mainscene extends Phaser.Scene {
     this.remotePlayers = {};
     this.loadingAvatars = {};
     this.lastSent = 0;
-
+this.lastRoom = null;
     this.rooms = [];
     this.currentRoom = null;
   }
@@ -214,18 +214,21 @@ export default class Mainscene extends Phaser.Scene {
   spawnRemotePlayer(data){
 
     if(this.remotePlayers[data.userId]) return;
-
+ if(this.loadingAvatars[data.userId]) return;
+ this.loadingAvatars[data.userId] = true;
     const avatarKey="avatar_"+data.userId;
 
     if(this.textures.exists(avatarKey)){
       this.createRemotePlayer(data,avatarKey);
-      return;
+      delete this.loadingAvatars[data.userId];
+    return;
     }
 
     this.load.image(avatarKey,data.avatar.replace("/svg","/png"));
 
-    this.load.on(`filecomplete-image-${avatarKey}`,()=>{
+    this.load.once(`filecomplete-image-${avatarKey}`,()=>{
       this.createRemotePlayer(data,avatarKey);
+       delete this.loadingAvatars[data.userId];
     });
 
     if(!this.load.isLoading()) this.load.start();
@@ -272,9 +275,24 @@ export default class Mainscene extends Phaser.Scene {
 
     if(moving) this.sendMovement();
 
-    this.currentRoom = this.getRoomId(this.playerBody.x,this.playerBody.y);
+    const newRoom=this.getRoomId(this.playerBody.x,this.playerBody.y)
+    if(newRoom!==this.lastRoom){
+      this.lastRoom=newRoom
+      this.onRoomChanged(newRoom)
+    }
   }
+onRoomChanged(roomid){
+  if(!roomid){
+    console.log("Left room");
+    window.currentRoomId = null;
+  window.dispatchEvent(new Event("roomChanged"));
+  return;
+  }
+  console.log("Entered room:", roomid);
+window.currentRoomId=roomid
+window.dispatchEvent(new Event("roomChanged"))
 
+}
   sendMovement(){
 
     if(!this.socket||!this.matchId) return;

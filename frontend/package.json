@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "mediasoup-client": "^3.18.6",
+    "socket.io-client": "^4.8.3"
+  }
+}

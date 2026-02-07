@@ -33,8 +33,8 @@ if(mode=="signup"&&name.length<5){
     try {
       let url =
         mode === "signup"
-          ? "http://3.106.204.203:5000/createAccount"
-          : "http://3.106.204.203:5000/LoginAccount";
+          ? "http://localhost:5000/createAccount"
+          : "http://localhost:5000/LoginAccount";
 console.log(url)
 const payload =
   mode === "signup"

@@ -1,0 +1,66 @@
+services:
+ postgres:
+  image: postgres:15
+  container_name: postgresql
+  environment: 
+   POSTGRES_USER: thoufiq
+   POSTGRES_PASSWORD: thoufiq
+   POSTGRES_DB: virtual_office
+  ports:
+   - "5432:5432"
+  healthcheck: 
+   test: ["CMD-SHELL","pg_isready -U thoufiq -d virtual_office"]
+   interval: 10s
+   timeout: 10s
+   retries: 10
+  
+  volumes:
+   - postgres_data:/var/lib/postgresql/data
+ redis:
+  image: redis
+  restart: always
+  healthcheck:
+   test: ["CMD","redis-cli","ping"]
+   interval: 10s
+   timeout: 5s
+   retries: 5
+ nakama:
+  image: heroiclabs/nakama:3.20.0
+  container_name: nakama 
+  depends_on: 
+   postgres:
+    condition: service_healthy
+   redis:
+    condition: service_healthy
+  entrypoint:
+   - /bin/sh
+   - -ec
+   - |
+     /nakama/nakama migrate up \
+     --database.address thoufiq:thoufiq@postgres:5432/virtual_office 
+     exec /nakama/nakama \
+      --name virtual_office \
+      --database.address thoufiq:thoufiq@postgres:5432/virtual_office \
+      --session.token_expiry_sec 3600
+      --session.refresh_token_expiry_sec 604800
+      --runtime.env REDIS_HOST=redis \
+      --logger.level DEBUG \
+      --socket.server_key defaultkey
+  ports:
+   - "7350:7350"
+   - "7351:7351"
+  command:
+   - "--name=nakama"
+   - "--cors_allowed_origins=*"
+  volumes:
+   - ./data/modules:/nakama/data/modules
+  
+ 
+volumes:
+ postgres_data:
+
+
+    
+
+
+
