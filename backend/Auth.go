@@ -43,7 +43,7 @@ func addUser(email, avatar, password, name string) string {
 
 	req, _ := http.NewRequest(
 		"POST",
-		"http://localhost:7350/v2/account/authenticate/email?create=true",
+		"http://nakama:7350/v2/account/authenticate/email?create=true",
 		strings.NewReader(payload),
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -70,7 +70,7 @@ func addUser(email, avatar, password, name string) string {
 	}`
 	res, _ := http.NewRequest(
 		"PUT",
-		"http://localhost:7350/v2/account",
+		"http://fd:7350/v2/account",
 		strings.NewReader(avatarPayload),
 	)
 	res.Header.Set("Content-Type", "application/json")
@@ -132,7 +132,7 @@ func authenticate(email, password string) string {
 	}`
 	res, _ := http.NewRequest(
 		"POST",
-		"http://localhost:7350/v2/account/authenticate/email",
+		"http://nakama:7350/v2/account/authenticate/email",
 		strings.NewReader(payload),
 	)
 	res.Header.Set("Content-Type", "application/json")

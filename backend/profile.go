@@ -21,7 +21,7 @@ func sendProfile(w http.ResponseWriter, r *http.Request) {
 	// fmt.Println(auth)
 	req, _ := http.NewRequest(
 		"GET",
-		"http://localhost:7350/v2/account",
+		"http://nakama:7350/v2/account",
 		nil,
 	)
 	req.Header.Set("Authorization", auth)
