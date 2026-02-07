@@ -41,5 +41,5 @@ func main() {
 	})
 
 	handle := enablecors(http.DefaultServeMux)
-	log.Fatal(http.ListenAndServe(":5000", handle))
+	log.Fatal(http.ListenAndServe("0.0.0.0:8080", handle))
 }
