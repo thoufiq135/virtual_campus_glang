@@ -33,8 +33,8 @@ if(mode=="signup"&&name.length<5){
     try {
       let url =
         mode === "signup"
-          ? "http://3.106.204.203:5000/createAccount"
-          : "http://3.106.204.203:5000/LoginAccount";
+          ? "http://13.236.5.43:5000/createAccount"
+          : "http://13.236.5.43:5000/LoginAccount";
 console.log(url)
 const payload =
   mode === "signup"
@@ -96,7 +96,7 @@ navigator("/campus")
 
   const googleLogin = async (token) => {
     const res = await fetch(
-      "http://localhost:7350/v2/account/authenticate/google",
+      "http://13.236.5.43:7350/v2/account/authenticate/google",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

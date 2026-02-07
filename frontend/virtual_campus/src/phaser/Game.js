@@ -17,10 +17,10 @@ async function fetch_profile() {
     
     try {
       const token_login = localStorage.getItem("stackenzo_token_data_gsin");
-      console.log("calling http://3.106.204.203:5000/profile");
+      console.log("calling http://13.236.5.43:5000/profile");
       console.log("sending headers token",token_login)
 
-      const response = await fetch("http://3.106.204.203:5000/profile", {
+      const response = await fetch("http://13.236.5.43:5000/profile", {
         headers: {
           Authorization: `Bearer ${token_login}`
         }

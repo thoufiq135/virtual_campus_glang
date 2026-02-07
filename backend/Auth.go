@@ -70,7 +70,7 @@ func addUser(email, avatar, password, name string) string {
 	}`
 	res, _ := http.NewRequest(
 		"PUT",
-		"http://fd:7350/v2/account",
+		"http://nakama:7350/v2/account",
 		strings.NewReader(avatarPayload),
 	)
 	res.Header.Set("Content-Type", "application/json")
