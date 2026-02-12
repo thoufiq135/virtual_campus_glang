@@ -4,8 +4,8 @@ export async function connect_nakama() {
 
   const client = new Client(
     "defaultkey",
-    "13.236.5.43",
-    "7350",
+    "realtime.gsin.online",
+    443,
     false
   );
 
@@ -27,7 +27,7 @@ const user=raw.user
   localStorage.setItem("nakama_session", session.token);
 
   // Create socket
-  const socket = client.createSocket(false,false);
+  const socket = client.createSocket(true,true);
 
   socket.onerror = e => console.error("Socket error", e);
 

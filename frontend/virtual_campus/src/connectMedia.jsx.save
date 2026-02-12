@@ -16,29 +16,21 @@ const videoRef=useRef(null)
 const streamRef = useRef(null);
 const recvTransportRef = useRef(null);
 const [remoteStreams,setRemoteStreams]=useState([]);
-const hasJoinedRef = useRef(false);
-const data=localStorage.getItem("stackenzo_gsin_user_data")
-const name=data.user.display_name
-console.log("name,name")
-const avatar_url=data.user.avatar_url
-console.log("avatar=",avatar_url)
+
+
 console.log("came room id=",roomId.roomId)
    
    useEffect(()=>{
     if(!roomId) return
-if(!name||!avatar_url){
-console.log("did'nt get name or avatar url")
-return
-}
+    sessionRef.current++;
 
 
- socket.emit("joinRoom",{roomid:roomId.roomId,name,avatar_url},async data=>{
+ socket.emit("joinRoom",{roomid:roomId.roomId},async data=>{
 if (data.error) {
         console.log(data.error);
         return;
       }
        console.log(`Joined meeting room= ${roomId.roomId} with ${data.rtpCapabilities}`);
-console.log("got producers",data.producer)
    
  deviceRef.current=new mediasoup.Device()
  await deviceRef.current.load({
@@ -46,12 +38,12 @@ console.log("got producers",data.producer)
  })
   console.log("device loaded");
    await createRecvTransport();
-   if (data.producers) {
+    if (data.producers) {
   data.producers.forEach(pid => {
     if (!myProducerIdsRef.current.includes(pid)) {
       consume(pid);
-   }
- });
+    }
+  });
 }
    socket.emit("createTransport",async params=>{
     sendTransportRef.current=deviceRef.current.createSendTransport(params)
@@ -93,7 +85,6 @@ console.log("got producers",data.producer)
     recvTransportRef.current = null;
   }
    
-
    
   setRemoteStreams([]);
     }
@@ -112,11 +103,6 @@ console.log("got producers",data.producer)
 
 const startWebcam = async () => {
 console.log("startWebcam called");
-if (sendTransportRef.current) {
-  console.log("Already initialized, skipping...");
-  return;
-}
-
   const session = ++sessionRef.current;
 
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -156,33 +142,16 @@ myProducerIdsRef.current.push(audioProducer.id);
   console.log("webcam streaming");
 };
 
-const createRecvTransport = () => {
-  return new Promise(resolve => {
-    socket.emit("createRecvTransport", params => {
-
-      recvTransportRef.current =
-        deviceRef.current.createRecvTransport(params);
-
-      recvTransportRef.current.on(
-        "connect",
-        ({ dtlsParameters }, cb) => {
-          socket.emit("connectRecvTransport", { dtlsParameters });
-          cb();
-        }
-      );
-
-      console.log("Recv transport ready");
-
-      resolve();
-    });
-  });
-};
-
+ const createRecvTransport=async ()=>{
+  socket.emit("createRecvTransport",params=>{
+    recvTransportRef.current=deviceRef.current.createRecvTransport(params)
+    recvTransportRef.current.on("connect",({dtlsParameters},cb)=>{
+      socket.emit("connectRecvTransport",{dtlsParameters})
+      cb()
+    })
+  })
+ }
 const consume = async (producerId) => {
-if(!recvTransportRef.current){
-console.log("recv transport not ready")
-return;
-}
 console.log("starting consume")
   socket.emit("consume", {
     producerId,
@@ -199,20 +168,27 @@ console.log("starting consume")
     });
 
     console.log("Consuming producer:", producerId);
-console.log("Consumer kind:", data.kind);
 
     socket.emit("resumeConsumer", { consumerId: consumer.id });
-const newStream = new MediaStream();
-newStream.addTrack(consumer.track);
-console.log("Consumer kind:", consumer.kind);
-console.log("Track readyState:", consumer.track.readyState);
 
-setRemoteStreams(prev => [
-  ...prev,
-  { id: consumer.id, stream: newStream }
-]);
+    setRemoteStreams(prev => {
 
-    
+      // Try to find existing stream for same producer
+      let existing = prev.find(s => s.producerId === producerId);
+
+      if (existing) {
+        existing.stream.addTrack(consumer.track);
+        return [...prev];
+      }
+
+      // Create new stream object
+      const newStream = new MediaStream([consumer.track]);
+
+      return [
+        ...prev,
+        { producerId, stream: newStream }
+      ];
+    });
 
   });
 };
@@ -245,18 +221,12 @@ return (
           key={i}
           autoPlay
           playsInline
-        ref={el => {
-      if (el && el.srcObject !== obj.stream) {
-        el.srcObject = obj.stream;
-      }
-    }}
+          ref={el => {
+            if (el) {
+              el.srcObject =obj.stream;
+            }
+          }}
           width="200"
- style={{
-        
-        width: "320px",
-        height: "240px",
-        background: "black",
-        zIndex:9999}}
         />
       ))}
     </div>
@@ -265,3 +235,4 @@ return (
 );
 }
 export default Media_soup;
+
