@@ -23,9 +23,9 @@ const recvTransportPromiseRef = useRef(null);
 const data=localStorage.getItem("stackenzo_gsin_user_data")
 const parsed = JSON.parse(data);
 const name=parsed.user
-const shouldPublish = true; // decide based on role
+const shouldPublish = false; // decide based on role
 
-const TEST_SELF_CONSUME = true
+const TEST_SELF_CONSUME = false
 console.log("name",name.display_name)
 const avatar_url=name.avatar_url
 console.log("avatar=",name.avatar_url)
