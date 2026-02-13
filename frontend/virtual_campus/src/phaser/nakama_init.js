@@ -4,8 +4,8 @@ export async function connect_nakama() {
 
   const client = new Client(
     "defaultkey",
-    "realtime.gsin.online",
-    "443",
+    "localhost",
+    "7350",
     false
   );
 // "realtime.gsin.online","443"

@@ -17,12 +17,15 @@ const videoRef=useRef(null)
    const sendTransportRef = useRef(null);
 const streamRef = useRef(null);
 const recvTransportRef = useRef(null);
-const [remoteStreams,setRemoteStreams]=useState([]);
-const hasJoinedRef = useRef(false);
+const [remoteStreams, setRemoteStreams] = useState({});
+const recvTransportPromiseRef = useRef(null);
+
 const data=localStorage.getItem("stackenzo_gsin_user_data")
 const parsed = JSON.parse(data);
 const name=parsed.user
-const TEST_SELF_CONSUME = false
+const shouldPublish = true; // decide based on role
+
+const TEST_SELF_CONSUME = true
 console.log("name",name.display_name)
 const avatar_url=name.avatar_url
 console.log("avatar=",name.avatar_url)
@@ -54,13 +57,7 @@ console.log("got producers",data.producer)
  })
   console.log("device loaded");
 
-   if (data.producer) {
-  data.producer.forEach(pid => {
-    if (!myProducerIdsRef.current.includes(pid)) {
-      consume(pid);
-   }
- });
-}
+ 
    socket.emit("createTransport",{},async params=>{
     sendTransportRef.current=deviceRef.current.createSendTransport(params)
     console.log("Transport direction:", sendTransportRef.current.direction);
@@ -77,7 +74,8 @@ sendTransportRef.current.on(
   }
 )
 try {
-  const stream = await navigator.mediaDevices.getUserMedia({
+ if(shouldPublish){
+   const stream = await navigator.mediaDevices.getUserMedia({
     video: true,
     audio: true
  
@@ -91,10 +89,13 @@ const audioTrack = stream.getAudioTracks()[0];
 producerRef.current = await sendTransportRef.current.produce({
   track: videoTrack
 });
+myProducerIdsRef.current.push(producerRef.current.id);
 audioProducerRef.current = await sendTransportRef.current.produce({
   track: audioTrack
 });
+myProducerIdsRef.current.push(audioProducerRef.current.id);
 console.log("completed produce")
+ }
   // produce logic
 } catch (err) {
   console.log("Camera not available:", err.message)
@@ -120,6 +121,7 @@ socket.on("resumeProducer", async ({producerId})=>{
        socket.off("newProducer");
       console.log("stopping meeting")
       socket.emit("leaveRoom")
+        
         sessionRef.current++;
          if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
@@ -131,6 +133,7 @@ socket.on("resumeProducer", async ({producerId})=>{
       if (producerRef.current) {
       producerRef.current.close();
       producerRef.current = null;
+       audioProducerRef.current?.close();
     }
 
     if (sendTransportRef.current) {
@@ -140,11 +143,14 @@ socket.on("resumeProducer", async ({producerId})=>{
  if (recvTransportRef.current) {
     recvTransportRef.current.close();
     recvTransportRef.current = null;
+    recvTransportPromiseRef.current = null;
+
   }
-   
+     consumedProducersRef.current.clear();
+  myProducerIdsRef.current = [];
 
    
-  setRemoteStreams([]);
+  setRemoteStreams({});
     }
    },[roomId])
 
@@ -191,9 +197,15 @@ const consume = async (producerId) => {
   consumedProducersRef.current.add(producerId)
 
   // 🔥 REUSE TRANSPORT
-  if (!recvTransportRef.current) {
-    recvTransportRef.current = await createRecvTransport()
+if (!recvTransportRef.current) {
+
+  if (!recvTransportPromiseRef.current) {
+    recvTransportPromiseRef.current = createRecvTransport();
   }
+
+  recvTransportRef.current = await recvTransportPromiseRef.current;
+}
+
 
   const recvTransport = recvTransportRef.current
 
@@ -203,8 +215,8 @@ const consume = async (producerId) => {
       producerId,
       rtpCapabilities: deviceRef.current.rtpCapabilities
     },
-    async ({ id, kind, rtpParameters }) => {
-
+    async ({ id, kind, rtpParameters,peerId }) => {
+console.log("PEER ID RECEIVED:", peerId);
       const consumer = await recvTransport.consume({
         id,
         producerId,
@@ -222,10 +234,26 @@ console.log("TRACK ENABLED:", consumer.track.enabled)
 
 
 
-      const stream = new MediaStream()
-      stream.addTrack(consumer.track)
+ setRemoteStreams(prev => {
 
-      setRemoteStreams(prev => [...prev, { stream }])
+  const updated = { ...prev };
+
+  if (!updated[peerId]) {
+    updated[peerId] = new MediaStream();
+  }
+
+  // add incoming track
+  updated[peerId].addTrack(consumer.track);
+
+  // ⭐ force browser refresh (IMPORTANT)
+  updated[peerId] = new MediaStream(
+    updated[peerId].getTracks()
+  );
+
+  return updated;
+});
+
+
     }
   )
 }
@@ -244,30 +272,43 @@ setIsMuted(prev => !prev);
 }
 
 const Video = ({ stream }) => {
-  const ref = useRef(null)
+  const ref = useRef(null);
+console.log("Tracks:", stream.getTracks())
+  useEffect(() => {
+    if (!ref.current || !stream) return;
 
- useEffect(() => {
-  if (!ref.current || !stream) return
+    const video = ref.current;
+      video.srcObject = null; 
+    video.srcObject = stream;
 
-  ref.current.srcObject = stream
+    const handleLoaded = () => {
+      video.play()
+  .then(() => console.log("PLAY SUCCESS"))
+  .catch(e => console.log("PLAY FAILED", e));
+    };
 
-  const interval = setInterval(() => {
-    if (ref.current) {
+    video.onloadedmetadata = handleLoaded;
+
+    const interval = setInterval(() => {
       console.log(
         "VIDEO STATS →",
-        "readyState:", ref.current.readyState,
-        "time:", ref.current.currentTime,
-        "paused:", ref.current.paused
-      )
-    }
-  }, 2000)
+        "readyState:", video.readyState,
+        "time:", video.currentTime,
+        "paused:", video.paused
+      );
+      console.log(
+  "VIDEO SIZE →",
+  video.videoWidth,
+  video.videoHeight
+);
 
-  ref.current.onloadedmetadata = () => {
-    ref.current.play().catch(()=>{})
-  }
+    }, 2000);
 
-  return () => clearInterval(interval)
-}, [stream])
+    return () => {
+      clearInterval(interval);
+      video.onloadedmetadata = null;
+    };
+  }, [stream]);
 
   return (
     <video
@@ -276,48 +317,65 @@ const Video = ({ stream }) => {
       playsInline
       muted={false}
       style={{
-        width: "320px",
-  height: "240px",
-  background: "red",
- 
-margin:"10px",
-  zIndex: 9999999
+        marginLeft:"600px",
+        width: "220px",
+  height: "160px",
+  background: "black",
+  borderRadius: "12px",
+  objectFit: "cover",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.4)"
       }}
     />
-  )
-
-}
+  );
+};
+console.log(
+    "REMOTE STREAM COUNT:",
+    Object.keys(remoteStreams).length
+  );
 
 return (
   <div>
 
     {/* Local Preview */}
-    { <video
+    {/* { <video
       ref={videoRef}
       autoPlay
       muted
       playsInline
       style={{
         position: "fixed",
-        bottom: "20px",
-        right: "20px",
+        top: 0,
+        right: 0,
         width: "320px",
         height: "240px",
         background: "black",
         zIndex: 9999
       }}
-    /> }
+    /> } */}
 <button onClick={toggleMic}>
   {isMuted ? "Unmute" : "Mute"}
 </button>
 
     {/* Remote Videos */}
-    <div style={{ display: "flex", flexWrap: "wrap" }}>
-     {remoteStreams.map((obj, i) => (
-  <Video key={i} stream={obj.stream} />
-))}
-
+   {/* Remote Videos Layer */}
+<div
+  style={{
+    position: "fixed",
+    top: 0,
+    left: 0,
+    zIndex: 999999999,
+    pointerEvents: "none",   // allow clicks to pass to game
+    display: "flex",
+    flexWrap: "wrap"
+  }}
+>
+  {Object.entries(remoteStreams).map(([id, stream]) => (
+    <div key={id} style={{ pointerEvents: "auto" }}>
+      <Video stream={stream} />
     </div>
+  ))}
+</div>
+
 
   </div>
 );

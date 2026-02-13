@@ -33,8 +33,8 @@ if(mode=="signup"&&name.length<5){
     try {
       let url =
         mode === "signup"
-          ? "https://api.gsin.online/createAccount"
-          : "https://api.gsin.online/LoginAccount";
+          ? "http://localhost:5000/createAccount"
+          : "http://localhost:5000/LoginAccount";
 console.log(url)
 const payload =
   mode === "signup"

@@ -20,7 +20,7 @@ async function fetch_profile() {
       //console.log("calling http://13.236.5.43:5000/profile");
       console.log("sending headers token",token_login)
 // https://api.gsin.online/profile
-      const response = await fetch("https://api.gsin.online/profile", {
+      const response = await fetch("http://localhost:5000/profile", {
         headers: {
           Authorization: `Bearer ${token_login}`
         }
