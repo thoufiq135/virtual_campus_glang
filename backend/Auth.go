@@ -40,7 +40,7 @@ func addUser(email, avatar, password, name string) string {
 	"email":"` + email + `",
 	"password": "` + password + `"
 	}`
-
+	//"https://realtime.gsin.online/v2/account/authenticate/email?create=true",
 	req, _ := http.NewRequest(
 		"POST",
 		"https://realtime.gsin.online/v2/account/authenticate/email?create=true",
