@@ -5,10 +5,10 @@ export async function connect_nakama() {
   const client = new Client(
     "defaultkey",
     "realtime.gsin.online",
-    443,
+    "443",
     false
   );
-
+// "realtime.gsin.online","443"
   // Get stored Nakama user
   const raw = JSON.parse(localStorage.getItem("stackenzo_gsin_user_data"));
 const user=raw.user
@@ -27,7 +27,7 @@ const user=raw.user
   localStorage.setItem("nakama_session", session.token);
 
   // Create socket
-  const socket = client.createSocket(true,true);
+  const socket = client.createSocket(false,false);
 
   socket.onerror = e => console.error("Socket error", e);
 

@@ -19,7 +19,7 @@ async function fetch_profile() {
       const token_login = localStorage.getItem("stackenzo_token_data_gsin");
       //console.log("calling http://13.236.5.43:5000/profile");
       console.log("sending headers token",token_login)
-
+// https://api.gsin.online/profile
       const response = await fetch("https://api.gsin.online/profile", {
         headers: {
           Authorization: `Bearer ${token_login}`

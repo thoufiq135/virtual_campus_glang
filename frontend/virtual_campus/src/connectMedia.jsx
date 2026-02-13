@@ -8,6 +8,8 @@ import { Producer } from 'mediasoup-client/types'
 const Media_soup = (roomId) => {
    const deviceRef=useRef(null)
 const myProducerIdsRef = useRef([]);
+const audioProducerRef = useRef(null);
+const [isMuted, setIsMuted] = useState(false);
 
    const producerRef = useRef(null);
 const sessionRef = useRef(0);
@@ -18,12 +20,17 @@ const recvTransportRef = useRef(null);
 const [remoteStreams,setRemoteStreams]=useState([]);
 const hasJoinedRef = useRef(false);
 const data=localStorage.getItem("stackenzo_gsin_user_data")
-const name=data.user.display_name
-console.log("name,name")
-const avatar_url=data.user.avatar_url
-console.log("avatar=",avatar_url)
+const parsed = JSON.parse(data);
+const name=parsed.user
+const TEST_SELF_CONSUME = false
+console.log("name",name.display_name)
+const avatar_url=name.avatar_url
+console.log("avatar=",name.avatar_url)
 console.log("came room id=",roomId.roomId)
-   
+   const consumedProducersRef = useRef(new Set())
+
+
+
    useEffect(()=>{
     if(!roomId) return
 if(!name||!avatar_url){
@@ -37,7 +44,8 @@ if (data.error) {
         console.log(data.error);
         return;
       }
-       console.log(`Joined meeting room= ${roomId.roomId} with ${data.rtpCapabilities}`);
+      // const capabilites=JSON.stringify(data.rtpCapabilities,null,2)
+       console.log(`Joined meeting room= ${roomId.roomId} `);
 console.log("got producers",data.producer)
    
  deviceRef.current=new mediasoup.Device()
@@ -45,28 +53,69 @@ console.log("got producers",data.producer)
      routerRtpCapabilities: data.rtpCapabilities
  })
   console.log("device loaded");
-   await createRecvTransport();
-   if (data.producers) {
-  data.producers.forEach(pid => {
+
+   if (data.producer) {
+  data.producer.forEach(pid => {
     if (!myProducerIdsRef.current.includes(pid)) {
       consume(pid);
    }
  });
 }
-   socket.emit("createTransport",async params=>{
+   socket.emit("createTransport",{},async params=>{
     sendTransportRef.current=deviceRef.current.createSendTransport(params)
     console.log("Transport direction:", sendTransportRef.current.direction);
+sendTransportRef.current.on(
+  "connect",
+  ({dtlsParameters},callback)=>{
+    socket.emit("connectTransport",{dtlsParameters},callback)
+  }
+)
+sendTransportRef.current.on(
+  "produce",
+  ({kind,rtpParameters},callback)=>{
+    socket.emit("produce",{kind,rtpParameters},({id})=>callback({id}))
+  }
+)
+try {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: true
+ 
+  })
+     streamRef.current=stream
+if (videoRef.current) {
+  videoRef.current.srcObject = stream;
+}
+const videoTrack = stream.getVideoTracks()[0];
+const audioTrack = stream.getAudioTracks()[0];
+producerRef.current = await sendTransportRef.current.produce({
+  track: videoTrack
+});
+audioProducerRef.current = await sendTransportRef.current.produce({
+  track: audioTrack
+});
+console.log("completed produce")
+  // produce logic
+} catch (err) {
+  console.log("Camera not available:", err.message)
+}
 
-    connectSendTransport()
+
+
+    // connectSendTransport()
    })
 
     })
     socket.on("newProducer", ({ producerId }) => {
-      if (!recvTransportRef.current) return;
- if (myProducerIdsRef.current.includes(producerId)) return;
-  console.log("New producer:", producerId);
-  consume(producerId);
+     if(!TEST_SELF_CONSUME &&
+    myProducerIdsRef.current.includes(producerId))
+      return
+       console.log("new producer detected", producerId)
+       consume(producerId)
 });
+socket.on("resumeProducer", async ({producerId})=>{
+  console.log("consumer joined, producer should flow")
+})
     return()=>{
        socket.off("newProducer");
       console.log("stopping meeting")
@@ -98,130 +147,152 @@ console.log("got producers",data.producer)
   setRemoteStreams([]);
     }
    },[roomId])
- const connectSendTransport=()=>{
-  const transport=sendTransportRef.current
-  transport.on("connect",({dtlsParameters},cb)=>{
-    socket.emit("connectTransport",{dtlsParameters})
-    cb()
-  })
-  transport.on("produce",async (params,cb)=>{
-    socket.emit("produce",params,({id})=>cb({id}))
-  })
-  startWebcam()
- }
-
-const startWebcam = async () => {
-console.log("startWebcam called");
-if (sendTransportRef.current) {
-  console.log("Already initialized, skipping...");
-  return;
-}
-
-  const session = ++sessionRef.current;
-
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: true
-  });
-console.log("got media stream", stream);
-  // User already left
-  if (session !== sessionRef.current) {
-    stream.getTracks().forEach(t => t.stop());
-    return;
-  }
-
-  streamRef.current = stream;
-
-  // Attach preview AFTER React paint
-  requestAnimationFrame(() => {
-     console.log("videoRef:", videoRef.current);
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(()=>{});
-       console.log("preview attached");
-    }
-  });
-
-  if (!sendTransportRef.current) return;
-
-const videoProducer = await sendTransportRef.current.produce({
-  track: stream.getVideoTracks()[0]
-});
-myProducerIdsRef.current.push(videoProducer.id);
-const audioProducer=await sendTransportRef.current.produce({
-  track: stream.getAudioTracks()[0]
-});
-myProducerIdsRef.current.push(audioProducer.id);
-
-  console.log("webcam streaming");
-};
 
 const createRecvTransport = () => {
   return new Promise(resolve => {
-    socket.emit("createRecvTransport", params => {
 
-      recvTransportRef.current =
-        deviceRef.current.createRecvTransport(params);
+    socket.emit("createRecvTransport", {}, params => {
 
-      recvTransportRef.current.on(
+      const transport =
+        deviceRef.current.createRecvTransport(params)
+
+      transport.on(
         "connect",
-        ({ dtlsParameters }, cb) => {
-          socket.emit("connectRecvTransport", { dtlsParameters });
-          cb();
+        ({ dtlsParameters }, callback) => {
+          socket.emit(
+            "connectRecvTransport",
+            { dtlsParameters },
+            callback
+          )
         }
-      );
+      )
+transport.on("dtlsstatechange", state=>{
+  console.log("DTLS STATE:", state)
+})
+transport.on("icestatechange", state=>{
+  console.log("ICE STATE:", state)
+})
+      resolve(transport)   // ✅ resolve immediately
+    })
 
-      console.log("Recv transport ready");
+  })
+}
 
-      resolve();
-    });
-  });
-};
+
+
 
 const consume = async (producerId) => {
-if(!recvTransportRef.current){
-console.log("recv transport not ready")
-return;
+
+  if (consumedProducersRef.current.has(producerId)) {
+    console.log("Already consuming", producerId)
+    return
+  }
+
+  consumedProducersRef.current.add(producerId)
+
+  // 🔥 REUSE TRANSPORT
+  if (!recvTransportRef.current) {
+    recvTransportRef.current = await createRecvTransport()
+  }
+
+  const recvTransport = recvTransportRef.current
+
+  socket.emit(
+    "consume",
+    {
+      producerId,
+      rtpCapabilities: deviceRef.current.rtpCapabilities
+    },
+    async ({ id, kind, rtpParameters }) => {
+
+      const consumer = await recvTransport.consume({
+        id,
+        producerId,
+        kind,
+        rtpParameters
+      })
+
+      console.log("CONSUMER CREATED:", consumer.id)
+      console.log("consumer paused?", consumer.paused)
+console.log("TRACK SETTINGS:", consumer.track.getSettings())
+console.log("TRACK ENABLED:", consumer.track.enabled)
+
+      consumer.track.onunmute = () =>
+        console.log("track UNMUTED 🎥")
+
+
+
+      const stream = new MediaStream()
+      stream.addTrack(consumer.track)
+
+      setRemoteStreams(prev => [...prev, { stream }])
+    }
+  )
 }
-console.log("starting consume")
-  socket.emit("consume", {
-    producerId,
-    rtpCapabilities: deviceRef.current.rtpCapabilities
-  }, async data => {
 
-    if (data?.error) return console.log(data.error);
+const toggleMic=async()=>{
+  if(!audioProducerRef.current) return
+  if(isMuted){
+    await audioProducerRef.current.resume()
+    console.log("mic unmuted")
 
-    const consumer = await recvTransportRef.current.consume({
-      id: data.id,
-      producerId: data.producerId,
-      kind: data.kind,
-      rtpParameters: data.rtpParameters
-    });
+  }else{
+    await audioProducerRef.current.pause()
+    console.log("mic muted")
+  }
+setIsMuted(prev => !prev);
+}
 
-    console.log("Consuming producer:", producerId);
-console.log("Consumer kind:", data.kind);
+const Video = ({ stream }) => {
+  const ref = useRef(null)
 
-    socket.emit("resumeConsumer", { consumerId: consumer.id });
-const newStream = new MediaStream();
-newStream.addTrack(consumer.track);
-console.log("Consumer kind:", consumer.kind);
-console.log("Track readyState:", consumer.track.readyState);
+ useEffect(() => {
+  if (!ref.current || !stream) return
 
-setRemoteStreams(prev => [
-  ...prev,
-  { id: consumer.id, stream: newStream }
-]);
+  ref.current.srcObject = stream
 
-    
+  const interval = setInterval(() => {
+    if (ref.current) {
+      console.log(
+        "VIDEO STATS →",
+        "readyState:", ref.current.readyState,
+        "time:", ref.current.currentTime,
+        "paused:", ref.current.paused
+      )
+    }
+  }, 2000)
 
-  });
-};
+  ref.current.onloadedmetadata = () => {
+    ref.current.play().catch(()=>{})
+  }
+
+  return () => clearInterval(interval)
+}, [stream])
+
+  return (
+    <video
+      ref={ref}
+      autoPlay
+      playsInline
+      muted={false}
+      style={{
+        width: "320px",
+  height: "240px",
+  background: "red",
+ 
+margin:"10px",
+  zIndex: 9999999
+      }}
+    />
+  )
+
+}
 
 return (
   <div>
 
     {/* Local Preview */}
-    <video
+    { <video
       ref={videoRef}
       autoPlay
       muted
@@ -235,30 +306,17 @@ return (
         background: "black",
         zIndex: 9999
       }}
-    />
+    /> }
+<button onClick={toggleMic}>
+  {isMuted ? "Unmute" : "Mute"}
+</button>
 
     {/* Remote Videos */}
     <div style={{ display: "flex", flexWrap: "wrap" }}>
-      {remoteStreams.map((obj, i) => (
+     {remoteStreams.map((obj, i) => (
+  <Video key={i} stream={obj.stream} />
+))}
 
-        <video
-          key={i}
-          autoPlay
-          playsInline
-        ref={el => {
-      if (el && el.srcObject !== obj.stream) {
-        el.srcObject = obj.stream;
-      }
-    }}
-          width="200"
- style={{
-        
-        width: "320px",
-        height: "240px",
-        background: "black",
-        zIndex:9999}}
-        />
-      ))}
     </div>
 
   </div>
