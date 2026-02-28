@@ -51,7 +51,7 @@ func addUser(email, avatar, password, name string) string {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("err at nakama add user")
+		fmt.Println("err at nakama add user", err)
 		return "error"
 	}
 	bodybytes, _ := io.ReadAll(resp.Body)
