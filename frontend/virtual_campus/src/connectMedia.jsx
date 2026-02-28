@@ -1,9 +1,6 @@
-import React, { useEffect, useRef ,useState} from 'react'
+import { useEffect, useRef ,useState} from 'react'
 import * as mediasoup from "mediasoup-client"
 import socket from './socket'
-import { connect } from 'socket.io-client'
-import { Producer } from 'mediasoup-client/types'
-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faVideo,faVideoSlash,faMicrophoneLinesSlash,faMicrophone } from "@fortawesome/free-solid-svg-icons";
 
@@ -26,8 +23,8 @@ const peerConsumersRef = useRef({});
 const data=localStorage.getItem("stackenzo_gsin_user_data")
 const parsed = JSON.parse(data);
 const name=parsed.user
-const shouldPublish = true; // decide based on role
-//false
+
+
 const TEST_SELF_CONSUME = true
 console.log("name",name.display_name)
 const avatar_url=name.avatar_url
@@ -492,10 +489,6 @@ return (
       ))}
 
     </div>
-
-    {/* Control Button */}
-
-
   </div>
   
  </div>
