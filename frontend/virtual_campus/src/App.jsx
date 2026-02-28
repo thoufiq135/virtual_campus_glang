@@ -17,11 +17,12 @@ return () => window.removeEventListener("roomChanged", handler);
 },[])
   return (
 <>
+ {roomId && <Media_soup roomId={roomId}/>}
  <Routes>
   <Route path="/Login" element={<Login/>}/>
   <Route path="/campus" element={<Campus/>}/>
  </Routes>
- {roomId && <Media_soup roomId={roomId}/>}
+
 </>
   );
 }

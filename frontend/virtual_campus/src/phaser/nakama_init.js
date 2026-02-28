@@ -6,7 +6,7 @@ export async function connect_nakama() {
     "defaultkey",
     "realtime.gsin.online",
     "443",
-    false
+    true
   );
 // "realtime.gsin.online","443"
   // Get stored Nakama user

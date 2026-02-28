@@ -29,7 +29,7 @@ if(password.length<8){
 if(mode=="signup"&&name.length<5){
   alert("name must be min 5 letters")
 }
-
+//"https://api.gsin.online/createAccount"
     try {
       let url =
         mode === "signup"
